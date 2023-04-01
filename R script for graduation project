@@ -1,0 +1,147 @@
+#Graduation project#
+
+##Set work directory##
+setwd("C:/Users/SCU-mark/Desktop/graduation project/data")
+
+##Read data file##
+
+library(haven)
+###download dta file from the website of CHARLS###
+demographic_background <- read_dta("Demographic_Background.dta")
+sample_info <- read_dta("Sample_Infor.dta")
+family_transfer <- read_dta("Family_Transfer.dta")
+health_status <- read_dta("Health_Status_and_Functioning.dta")
+cognition <- read_dta("Cognition.dta")
+insider <- read_dta("Insider.dta")
+family_info <- read_dta("Family_Information.dta")
+##Clean data##
+##load the library##
+library('tidyverse')
+library('lubridate')
+#set the interview time (year-month) according to sample_info
+interview_time <- sample_info %>% 
+  mutate(endtime=paste('2018',imonth,'01',sep = '-'))
+#find the actual birth time(year-month) from demographic background and remove the missing values
+birth_time <- demographic_background %>% drop_na(ba002_1,ba002_2) %>% 
+  mutate(starttime=paste(ba002_1,ba002_2,'01',sep = '-'))
+#calculate the age and filter the elderly(>60years)
+
+elderly <-merge(birth_time,interview_time
+                ,by=c('ID','householdID','communityID'))%>%
+  mutate(age=round((as.Date(endtime)-as.Date(starttime))/365)) %>% 
+  filter(age>=60)
+#Build the TFI
+#use 3 parts of household questionnaire(health_status,cognition and family_transfer) 
+health <- merge(health_status,cognition,by=c('ID','householdID','communityID')) %>% 
+  merge(family_transfer,by=c('ID','householdID','communityID')) %>% 
+  merge(insider,by=c('ID','householdID','communityID')) %>% 
+  merge(elderly,by=c('ID','householdID','communityID')) %>% 
+  merge(family_info,by=c('ID','householdID','communityID'))
+
+#phsical dimension of TFI
+physical <- subset(health,
+                   select = c(ID,da002,da007_1_:da007_14_,db003,db006,da039,da033
+                              ,da034,db008,dc012))  %>% drop_na(da002)
+#Reassignment the 1st item of TFI physical
+physical$tfi1 <- ifelse(physical$da002<=3,0,1)
+#Reassignment the 2nd item of TFI physical
+physical$tfi2 <- ifelse(physical$da007_1_==1|physical$da007_2_==1|
+                 physical$da007_3_==1|physical$da007_4_==1|physical$da007_5_==1
+               |physical$da007_6_==1|physical$da007_7_==1|physical$da007_8_==1
+               |physical$da007_9_==1|physical$da007_10_==1|physical$da007_11_==1
+               |physical$da007_12_==1|physical$da007_13_==1|physical$da007_14_==1,1,0)%>% 
+  replace_na(0)
+#Reassignment the 3rd item of TFI physical
+physical$tfi3 <- ifelse(physical$db003 %in% c(3,4),1,0) %>% replace_na(0)
+#Reassignment the 4th item of TFI physical
+physical$tfi4 <- ifelse(physical$db006 %in% c(1,2),0,1) 
+#Reassignment the 5th item of TFI physical
+physical$tfi5 <- ifelse(physical$da039 %in% c(1,2,3,4),0,1)
+#Reassignment the 6th item of TFI physical
+physical$tfi6 <- ifelse(physical$da033 %in% c(1,2,3,4) &
+                          physical$da034 %in% c(1,2,3,4),0,1)
+#Reassignment the 7th item of TFI physical
+physical$tfi7 <- ifelse(physical$db008 %in% c(1,2),0,1)
+#Reassignment the 8th item of TFI physical
+physical$tfi8 <- ifelse(physical$dc012 %in% c(1,2),0,1)
+#the physical part of TFI
+TFI_physical <- subset(physical,select = c(ID,tfi1:tfi8))
+rm(physical)
+#mental dimension of TFI
+mental <- subset(health,select = c(ID,dc004,dc011,dc014,dd039_w4:dd041_w4))
+#Reassignment the first item of TFI mental part
+mental$tfi9[mental$dc004 %in% c(1,2,3)] <- 0
+mental$tfi9[mental$dc004 ==4] <- 0.5
+mental$tfi9[mental$dc004 ==5] <- 1
+#Reassignment the 2nd item of TFI mental part
+mental$tfi10[mental$dc011 %in% c(1,2)] <- 0
+mental$tfi10[mental$dc011 ==3] <- 0.5
+mental$tfi10[mental$dc011 ==4] <- 1
+#Reassignment the 3rd item of TFI mental part
+mental$tfi11[mental$dc014 %in% c(1,2)] <- 0
+mental$tfi11[mental$dc014 ==3] <- 0.5
+mental$tfi11[mental$dc014 ==4] <- 1
+#Reassignment the 4th item of TFI mental part
+mental$tfi12 <- ifelse(mental$dd039_w4 %in% c(1,2)
+                       |mental$dd040_w4 %in% c(1,2) 
+                       |mental$dd041_w4 %in% c(1,2),0,1)
+#the mental part of TFI
+TFI_mental <- subset(mental,select = c(ID,tfi9:tfi12)) %>% drop_na()
+rm(mental)
+#social dimension of TFI(not completed)
+social <- subset(health,select = c(ID,be002,a005_w3_1_:a005_w3_10_,dc017,
+                                   ce002_1_1_:ce002_1_8_,ce009_1_1_:ce009_1_15_))
+#Reassignment the first item of TFI social part
+social$tfi13 <- ifelse(!is.na(social$be002) & social$be002==2 & is.na(social$a005_w3_1_) 
+                       & is.na(social$a005_w3_2_)& is.na(social$a005_w3_3_)
+                       & is.na(social$a005_w3_4_) & is.na(social$a005_w3_5_)
+                       & is.na(social$a005_w3_6_) & is.na(social$a005_w3_7_)
+                       & is.na(social$a005_w3_8_) & is.na(social$a005_w3_9_)
+                       & is.na(social$a005_w3_10_),1,0)
+#Reassignment the 2nd item of TFI social part
+social$tfi14[social$dc017 %in% c(1,2)] <- 0
+social$tfi14[social$dc017 ==3] <- 0.5
+social$tfi14[social$dc017 ==4] <- 1
+#Reassignment the 3rd item of TFI social part
+social$tfi15 <- ifelse(is.na(social$ce002_1_1_) &social$ce002_1_1_==0 
+                       & is.na(social$ce002_1_2_) &social$ce002_1_2_==0
+                       & is.na(social$ce002_1_3_) &social$ce002_1_3_==0
+                       & is.na(social$ce002_1_4_) &social$ce002_1_4_==0
+                       & is.na(social$ce002_1_5_) &social$ce002_1_5_==0
+                       & is.na(social$ce002_1_6_) &social$ce002_1_6_==0
+                       & is.na(social$ce002_1_7_) &social$ce002_1_7_==0
+                       & is.na(social$ce002_1_8_) &social$ce002_1_8_==0
+                       & is.na(social$ce009_1_1_) &social$ce009_1_1_==0
+                       & is.na(social$ce009_1_2_) &social$ce009_1_2_==0
+                       & is.na(social$ce009_1_3_) &social$ce009_1_3_==0
+                       & is.na(social$ce009_1_4_) &social$ce009_1_4_==0
+                       & is.na(social$ce009_1_5_) &social$ce009_1_5_==0
+                       & is.na(social$ce009_1_6_) &social$ce009_1_6_==0
+                       & is.na(social$ce009_1_7_) &social$ce009_1_7_==0
+                       & is.na(social$ce009_1_8_) &social$ce009_1_8_==0
+                       & is.na(social$ce009_1_9_) &social$ce009_1_9_==0
+                       & is.na(social$ce009_1_10_) &social$ce009_1_10_==0
+                       & is.na(social$ce009_1_11_) &social$ce009_1_11_==0
+                       & is.na(social$ce009_1_12_) &social$ce009_1_12_==0
+                       & is.na(social$ce009_1_13_) &social$ce009_1_13_==0
+                       & is.na(social$ce009_1_14_) &social$ce009_1_14_==0
+                       & is.na(social$ce009_1_15_) &social$ce009_1_15_==0,1,0)
+#the social part of TFI
+TFI_social <- subset(social,select = c(ID,tfi13:tfi15)) %>% drop_na()
+rm(social)
+#combine the 3 parts and calculate the total score
+tilburg1 <- merge(TFI_physical,TFI_mental,by='ID') %>% merge(TFI_social,by='ID')
+Tilburg <- tilburg1 %>% mutate(total=tfi1+tfi2+tfi3+tfi4+tfi5+tfi6+tfi7
+                                +tfi8+tfi9+tfi10+tfi11+tfi12+tfi13+tfi14+tfi15)
+#Set the determinants of fraility
+determinants <- subset(health,select = c(ID,ba000_w2_3,bd001_w2_4,age,be001
+                                          ,bc002_w3_1,bg001_w4,da059,da067,dc028
+                                         ,da056_s1:da056_s12,da049,da050)) %>%
+  drop_na()
+#clear the environment panel
+rm(sample_info,demographic_background,birth_time,interview_time,health_status
+     ,insider,family_transfer,family_info,cognition)
+#merge the determinants and Tilburg to prep the analysis
+final <- merge(Tilburg,determinants,by='ID')
+summarise()
+#Descriptive analysis
