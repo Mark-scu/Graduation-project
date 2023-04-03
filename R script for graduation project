@@ -342,9 +342,5 @@ fit <- glm(rate~sex+age_group+education+marsta+hukou+da067+sociact
                      +slphrs,family=binomial(link = "logit"),data=final)
 summary(fit)
 
-#OR value
-OR_value <- exp(coef(fit))
-OR_value
-#Confidence interval(95%)
-CI <- exp(confint(fit))
-CI
+#Compute OR value and Confidence interval(95%)
+cbind(OR=exp(coef(fit)),exp(confint(fit)))
