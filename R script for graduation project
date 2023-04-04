@@ -1,8 +1,9 @@
 #Graduation project#
 
+#prepare the R packages
+install.packages('haven','forestplot','tidyverse','lubridate')
 ##Set work directory##
 setwd("C:/Users/SCU-mark/Desktop/graduation project/data")
-
 ##Read data file##
 library(haven)
 
@@ -23,7 +24,7 @@ library('lubridate')
 
 #set the interview time (year-month) according to sample_info
 interview_time <- sample_info %>% 
-  mutate(endtime=paste('2018',imonth,'01',sep = '-'))
+  mutate(endtime=paste(iyear,imonth,'01',sep = '-'))
 #find the actual birth time(year-month) from demographic background and remove the missing values
 birth_time <- demographic_background %>% drop_na(ba002_1,ba002_2) %>% 
   mutate(starttime=paste(ba002_1,ba002_2,'01',sep = '-'))
@@ -42,7 +43,7 @@ health <- merge(health_status,cognition,by=c('ID','householdID','communityID')) 
   merge(elderly,by=c('ID','householdID','communityID')) %>% 
   merge(family_info,by=c('ID','householdID','communityID'))
 
-#Phsical dimension of TFI
+#Physical dimension of TFI
 physical <- subset(health,
                    select = c(ID,da002,da007_1_:da007_14_,db003,db006,da039,da033
                               ,da034,db008,dc012))  %>% drop_na(da002)
@@ -149,7 +150,7 @@ Tilburg %>% summarise(avg=median(total),q25=quantile(total,probs=0.25)
           ,q75=quantile(total,probs=0.75))
 
 #set a new variable rate to represent the status of fraility
-Tilburg$rate <- ifelse(Tilburg$total>=5,1,0)
+Tilburg$fra <- ifelse(Tilburg$total>=5,1,0)
 
 #Set the determinants of fraility
 determinants <- subset(health,select = c(ID,ba000_w2_3,bd001_w2_4,age,be001,zbc004
@@ -204,143 +205,162 @@ final <- merge(Tilburg,det,by='ID')
 
 #check the normality of the variable 'age'
 hist(as.numeric(final$age))
-#calculate the median age and quartiles of age
+#calculate the median age and quartile of age
 final %>% summarise(avg=median(age),q25=quantile(age,probs=0.25)
                     ,q75=quantile(age,probs=0.75))
 
 #calculate the average TFI score
-Tilburg %>% summarise(frailrate=sum(rate)/length(rate))
+Tilburg %>% summarise(frailrate=sum(fra)/length(fra))
 
 #describe the characteristics of sex for study objects
 group_by(final,sex) %>%  summarise(num_of_sex=n()
-                                                  ,proportion=num_of_sex/1114)
+                                   ,proportion=num_of_sex/length(Tilburg$fra))
 #describe the characteristics of nation for study objects
 group_by(final,nation) %>%  summarise(num_of_nation=n()
-                                                   ,proportion=num_of_nation/1114)
+                                      ,proportion=num_of_nation/length(Tilburg$fra))
 #describe the level of education for study objects
 group_by(final,education) %>%  summarise(num_of_nation=n()
-                                                   ,proportion=num_of_nation/1114)
+                                         ,proportion=num_of_nation/length(Tilburg$fra))
 #describe the characteristics of hukou for study objects
 group_by(final,hukou) %>% summarise(num_hukou=n()
-                                             ,proportion=num_hukou/1112) %>% drop_na()
+                                    ,proportion=num_hukou/length(Tilburg$fra)) %>%
+  drop_na()
 #describe the marital status of study objects
-group_by(final,marsta) %>% summarise(num_mar=n(),proportion=num_mar/1114)
+group_by(final,marsta) %>% summarise(num_mar=n()
+                                     ,proportion=num_mar/length(Tilburg$fra))
 #describe the characteristics of smoke for study objects
-group_by(final,smoke) %>% summarise(num_smoke=n(),proportion=num_smoke/1114)
+group_by(final,smoke) %>% summarise(num_smoke=n()
+                                    ,proportion=num_smoke/length(Tilburg$fra))
 #describe the characteristics of drinking alcohol for study objects
-group_by(final,da067) %>% summarise(num_drink=n(),proportion=num_drink/1114)
+group_by(final,da067) %>% summarise(num_drink=n()
+                                    ,proportion=num_drink/length(Tilburg$fra))
 #describe the social activities for study objects
-group_by(final,sociact) %>% summarise(num_sociact=n(),proportion=num_sociact/1114)
+group_by(final,sociact) %>% summarise(num_sociact=n()
+                                      ,proportion=num_sociact/length(Tilburg$fra))
 #describe the age group for study objects
-group_by(final,age_group) %>% summarise(num_group=n(),proportion=num_group/1114)
+group_by(final,age_group) %>% summarise(num_group=n()
+                                        ,proportion=num_group/length(Tilburg$fra))
 #describe the hrs of sleep
-group_by(final,slphrs) %>% summarise(num_group=n(),proportion=num_group/1114)
+group_by(final,slphrs) %>% summarise(num_group=n()
+                                     ,proportion=num_group/length(Tilburg$fra))
 #describe the napping time
-group_by(final,naptime) %>% summarise(num_group=n(),proportion=num_group/1114)
+group_by(final,naptime) %>% summarise(num_group=n()
+                                      ,proportion=num_group/length(Tilburg$fra))
 
 
 # One-way analysis of variance ie. chi-square test
 
 #chi-square for different age groups
-final %>% count(rate==0 & age_group==1)
-final %>% count(rate==0 & age_group==2)
-final %>% count(rate==0 & age_group==3)
-final %>% count(rate==1 & age_group==1)
-final %>% count(rate==1 & age_group==2)
-final %>% count(rate==1 & age_group==3)
+final %>% count(fra==0 & age_group==1)
+final %>% count(fra==0 & age_group==2)
+final %>% count(fra==0 & age_group==3)
+final %>% count(fra==1 & age_group==1)
+final %>% count(fra==1 & age_group==2)
+final %>% count(fra==1 & age_group==3)
 age_group <- matrix(c(456,278,60,148,126,46),nrow = 3,ncol = 2)
 chisq.test(age_group)
 
 #chi-square for different sex_groups
-final %>% count(rate==0 & sex==0)
-final %>% count(rate==0 & sex==1)
-final %>% count(rate==1 & sex==0)
-final %>% count(rate==1 & sex==1)
+final %>% count(fra==0 & sex==0)
+final %>% count(fra==0 & sex==1)
+final %>% count(fra==1 & sex==0)
+final %>% count(fra==1 & sex==1)
 sex_group <- matrix(c(441,353,121,199),nrow = 2,ncol = 2)
 chisq.test(sex_group)
 
 #chi-square for different nation groups
-final %>% count(rate==0 & nation==0)
-final %>% count(rate==0 & nation==1)
-final %>% count(rate==1 & nation==0)
-final %>% count(rate==1 & nation==1)
+final %>% count(fra==0 & nation==0)
+final %>% count(fra==0 & nation==1)
+final %>% count(fra==1 & nation==0)
+final %>% count(fra==1 & nation==1)
 nation_group <- matrix(c(746,48,294,26),nrow = 2,ncol = 2)
 chisq.test(nation_group)
 
 #chi-square for different education groups
-final %>% count(rate==0 & education==1)
-final %>% count(rate==0 & education==2)
-final %>% count(rate==0 & education==3)
-final %>% count(rate==1 & education==1)
-final %>% count(rate==1 & education==2)
-final %>% count(rate==1 & education==3)
+final %>% count(fra==0 & education==1)
+final %>% count(fra==0 & education==2)
+final %>% count(fra==0 & education==3)
+final %>% count(fra==1 & education==1)
+final %>% count(fra==1 & education==2)
+final %>% count(fra==1 & education==3)
 education_group <- matrix(c(145,357,292,123,147,50),nrow = 3,ncol = 2)
 chisq.test(education_group)
 
 #chi-square for different marital status groups
-final %>% count(rate==0 & marsta==0)
-final %>% count(rate==0 & marsta==1)
-final %>% count(rate==1 & marsta==0)
-final %>% count(rate==1 & marsta==1)
+final %>% count(fra==0 & marsta==0)
+final %>% count(fra==0 & marsta==1)
+final %>% count(fra==1 & marsta==0)
+final %>% count(fra==1 & marsta==1)
 mari_group <- matrix(c(174,620,145,175),nrow = 2,ncol = 2)
 chisq.test(mari_group)
+
 #chi-square for different types of hukou
-final %>% count(rate==0 & hukou==0)
-final %>% count(rate==0 & hukou==1)
-final %>% count(rate==1 & hukou==0)
-final %>% count(rate==1 & hukou==1)
+final %>% count(fra==0 & hukou==0)
+final %>% count(fra==0 & hukou==1)
+final %>% count(fra==1 & hukou==0)
+final %>% count(fra==1 & hukou==1)
 hukou_group <- matrix(c(274,519,61,258),nrow = 2,ncol = 2)
 chisq.test(hukou_group)
 
 #chi-square for smoke group
-final %>% count(rate==0 & smoke==0)
-final %>% count(rate==0 & smoke==1)
-final %>% count(rate==1 & smoke==0)
-final %>% count(rate==1 & smoke==1)
+final %>% count(fra==0 & smoke==0)
+final %>% count(fra==0 & smoke==1)
+final %>% count(fra==1 & smoke==0)
+final %>% count(fra==1 & smoke==1)
 smoke_group <- matrix(c(402,392,177,143),nrow = 2,ncol = 2)
 chisq.test(smoke_group)
 
 #chi-square for alcohol group
-final %>% count(rate==0 & da067==1)
-final %>% count(rate==0 & da067==2)
-final %>% count(rate==0 & da067==3)
-final %>% count(rate==1 & da067==1)
-final %>% count(rate==1 & da067==2)
-final %>% count(rate==1 & da067==3)
+final %>% count(fra==0 & da067==1)
+final %>% count(fra==0 & da067==2)
+final %>% count(fra==0 & da067==3)
+final %>% count(fra==1 & da067==1)
+final %>% count(fra==1 & da067==2)
+final %>% count(fra==1 & da067==3)
 education_group <- matrix(c(205,69,520,44,24,252),nrow = 3,ncol = 2)
 chisq.test(education_group)
 
 #chi-square for socail ativity group
-final %>% count(rate==0 & sociact==0)
-final %>% count(rate==0 & sociact==1)
-final %>% count(rate==1 & sociact==0)
-final %>% count(rate==1 & sociact==1)
+final %>% count(fra==0 & sociact==0)
+final %>% count(fra==0 & sociact==1)
+final %>% count(fra==1 & sociact==0)
+final %>% count(fra==1 & sociact==1)
 social_group <- matrix(c(354,440,175,145),nrow = 2,ncol = 2)
 chisq.test(social_group)
 
 #chi-square for sleep-time group
-final %>% count(rate==0 & slphrs==1)
-final %>% count(rate==0 & slphrs==2)
-final %>% count(rate==0 & slphrs==3)
-final %>% count(rate==1 & slphrs==1)
-final %>% count(rate==1 & slphrs==2)
-final %>% count(rate==1 & slphrs==3)
+final %>% count(fra==0 & slphrs==1)
+final %>% count(fra==0 & slphrs==2)
+final %>% count(fra==0 & slphrs==3)
+final %>% count(fra==1 & slphrs==1)
+final %>% count(fra==1 & slphrs==2)
+final %>% count(fra==1 & slphrs==3)
 sleep_group <- matrix(c(278,311,205,170,90,60),nrow = 3,ncol = 2)
 chisq.test(sleep_group)
 
 #chi-square for alcohol group
-final %>% count(rate==0 & naptime==0)
-final %>% count(rate==0 & naptime==1)
-final %>% count(rate==1 & naptime==0)
-final %>% count(rate==1 & naptime==1)
+final %>% count(fra==0 & naptime==0)
+final %>% count(fra==0 & naptime==1)
+final %>% count(fra==1 & naptime==0)
+final %>% count(fra==1 & naptime==1)
 nap_group <- matrix(c(361,433,166,154),nrow = 2,ncol = 2)
 chisq.test(nap_group)
 
 
 #Logistic regression
-fit <- glm(rate~sex+age_group+education+marsta+hukou+da067+sociact
-                     +slphrs,family=binomial(link = "logit"),data=final)
+#change the selected variable type as factor
+fit <- glm(fra~as.factor(sex)+as.factor(age_group)+as.factor(education)
+           +as.factor(marsta)+as.factor(hukou)+as.factor(da067)+as.factor(sociact)
+           +as.factor(slphrs),family=binomial(link = "logit"),data=final)
 summary(fit)
+
+#compute the variance inflation factor
+library('car')
+vif(fit)
 
 #Compute OR value and Confidence interval(95%)
 cbind(OR=exp(coef(fit)),exp(confint(fit)))
+
+#Draw the random forest map
+library('forestplot')
+forestmap <- forestplot(labeltext=matrix(c()))
