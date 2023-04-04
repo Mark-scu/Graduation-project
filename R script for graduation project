@@ -361,7 +361,7 @@ vif(fit)
 #Compute OR value and Confidence interval(95%)
 dat <-data.frame(cbind(OR=exp(coef(fit)),exp(confint(fit))))
 
-#Draw the random forest map
+#Draw the random forest plo
 library('forestplot')
 forestmap <- forestplot(matrix(c('Intercept','女','70~岁','80~岁','小学及以下'
                                  ,'初中及以上','在婚','农村','饮酒≤1次/月'
