@@ -359,8 +359,18 @@ library('car')
 vif(fit)
 
 #Compute OR value and Confidence interval(95%)
-cbind(OR=exp(coef(fit)),exp(confint(fit)))
+dat <-data.frame(cbind(OR=exp(coef(fit)),exp(confint(fit))))
 
 #Draw the random forest map
 library('forestplot')
-forestmap <- forestplot(labeltext=matrix(c()))
+forestmap <- forestplot(matrix(c('Intercept','女','70~岁','80~岁','小学及以下'
+                                 ,'初中及以上','在婚','农村','饮酒≤1次/月'
+                                 ,'不喝','有社会活动','夜间睡眠6~8h','夜间睡眠≥8h')
+                               ,nrow =13 ,ncol=1),mean=dat$OR,
+                        lower=dat$X2.5..,upper=dat$X97.5..,zero=1,boxsize=0.2,
+                        lineheight = unit(7,'mm'),colgap=unit(2,'mm'),lwd.zero=1.5,
+                        lwd.ci=2,lty.ci = "solid",title = "Forestplot",
+                        txt_gp = fpTxtGp(ticks = gpar(cex = 0.85),
+                                         xlab  = gpar(cex = 0.8),cex = 0.9),
+                        line.margin = 0.08,xlab="OR",lwd.xaxis =1,graph.pos=2)
+forestmap
